@@ -186,7 +186,7 @@ function TickerPage() {
                   color: '#a89070',
                   textTransform: 'uppercase' as const,
                 }}>
-                  {deal.formType || 'Filing'}
+                  {deal.formType || '-'}
                 </span>
                 <span style={{ fontSize: 13, color: '#c8c0b0' }}>
                   {cleanCompany(deal.company)}
