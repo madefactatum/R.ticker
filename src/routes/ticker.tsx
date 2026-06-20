@@ -175,7 +175,7 @@ function TickerPage() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 7,
-                  padding: '0 24px',
+                  padding: '0 5px',
                   textDecoration: 'none',
                   color: 'inherit',
                 }}
