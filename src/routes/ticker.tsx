@@ -28,8 +28,71 @@ function formatDate(dateStr: string): string {
   return `${MONTHS[m]} ${day}`
 }
 
+// Bluebook Table T6 — institutional word abbreviations
+const BB: Record<string, string> = {
+  'Acquisition': 'Acq.', 'Acquisitions': 'Acqs.',
+  'Associates': 'Assocs.', 'Association': "Ass'n",
+  'Bancorporation': 'Bancorp.', 'Bancorp': 'Bancorp.',
+  'Brothers': 'Bros.', 'Building': 'Bldg.',
+  'Capital': 'Cap.', 'Chemical': 'Chem.',
+  'Commission': "Comm'n", 'Communications': "Commc'ns",
+  'Community': 'Cmty.', 'Company': 'Co.', 'Companies': 'Cos.',
+  'Construction': 'Constr.', 'Continental': "Cont'l",
+  'Corporation': 'Corp.', 'Development': 'Dev.',
+  'Education': 'Educ.', 'Electric': 'Elec.',
+  'Engineering': "Eng'g", 'Enterprise': 'Enter.',
+  'Enterprises': 'Enters.', 'Entertainment': "Entm't",
+  'Environmental': 'Envtl.', 'Equipment': 'Equip.',
+  'Exchange': 'Exch.', 'Federal': 'Fed.',
+  'Financial': 'Fin.', 'Foundation': 'Found.',
+  'General': 'Gen.', 'Global': 'Glob.',
+  'Government': "Gov't", 'Group': 'Grp.',
+  'Holding': 'Holding', 'Holdings': 'Holding',
+  'Incorporated': 'Inc.', 'Industries': 'Indus.',
+  'Industry': 'Indus.', 'Information': 'Info.',
+  'Insurance': 'Ins.', 'International': "Int'l",
+  'Investment': 'Inv.', 'Investments': 'Invs.',
+  'Laboratory': 'Lab.', 'Laboratories': 'Labs.',
+  'Limited': 'Ltd.', 'Management': 'Mgmt.',
+  'Manufacturing': 'Mfg.', 'Medical': 'Med.',
+  'Mortgage': 'Mortg.', 'Municipal': 'Mun.',
+  'National': "Nat'l", 'Organization': 'Org.',
+  'Pharmaceutical': 'Pharm.', 'Pharmaceuticals': 'Pharms.',
+  'Products': 'Prods.', 'Professional': "Prof'l",
+  'Properties': 'Props.', 'Property': 'Prop.',
+  'Publishing': "Publ'g", 'Regional': "Reg'l",
+  'Resources': 'Res.', 'Sciences': 'Scis.',
+  'Security': 'Sec.', 'Securities': 'Sec.',
+  'Service': 'Serv.', 'Services': 'Servs.',
+  'Solutions': 'Sols.', 'System': 'Sys.', 'Systems': 'Sys.',
+  'Technologies': 'Techs.', 'Technology': 'Tech.',
+  'Therapeutics': 'Therapeutics', 'Transportation': 'Transp.',
+  'University': 'Univ.', 'Utility': 'Util.', 'Utilities': 'Utils.',
+}
+
+// Bluebook formula for words not in T6:
+// words of 5 letters or fewer stay in full;
+// longer words drop interior vowels to compress
+function bluebookAbbr(word: string): string {
+  if (word.length <= 5) return word
+  const first = word[0]
+  const last = word[word.length - 1]
+  const middle = word.slice(1, -1).replace(/[aeiou]/gi, '')
+  return (first + middle + last + '.').replace(/\.\./, '.')
+}
+
 function cleanCompany(name: string): string {
-  return name.replace(/\s*\(.*?\)\s*$/, '').trim()
+  let clean = name.replace(/\s*\(.*?\)\s*$/, '').trim()
+  clean = clean.replace(/\/[A-Z]{2}\/$/, '').trim()
+  if (clean === clean.toUpperCase()) {
+    clean = clean.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+  }
+  clean = clean.replace(/\b([A-Za-z']+)\b/g, (match) => {
+    const normalized = match.charAt(0).toUpperCase() + match.slice(1).toLowerCase()
+    if (BB[normalized]) return BB[normalized]
+    return bluebookAbbr(match)
+  })
+  return clean
 }
 
 export const Route = createFileRoute('/ticker')({
