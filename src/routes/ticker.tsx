@@ -14,6 +14,7 @@ interface DealsResponse {
   deals: Deal[]
   fetchedAt: string | null
   count: number
+  message?: string
 }
 
 const MONTHS = ['Jan.','Feb.','Mar.','Apr.','May','June',
@@ -21,12 +22,13 @@ const MONTHS = ['Jan.','Feb.','Mar.','Apr.','May','June',
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return ''
-  const [, m, d] = dateStr.split('-')
-  return `${MONTHS[parseInt(m, 10) - 1]} ${parseInt(d, 10)}`
+  const d = new Date(dateStr + 'T00:00:00Z')
+  const m = d.getUTCMonth()
+  const day = d.getUTCDate()
+  return `${MONTHS[m]} ${day}`
 }
 
 function cleanCompany(name: string): string {
-  // Strip ticker symbols in parentheses e.g. "DICK'S SPORTING GOODS, INC.  (DKS)"
   return name.replace(/\s*\(.*?\)\s*$/, '').trim()
 }
 
@@ -37,13 +39,16 @@ export const Route = createFileRoute('/ticker')({
   component: TickerPage,
 })
 
-const SPEED = 50 // px/s — steady, not rushed
+const SPEED = 60 // px/s — matches original
 
 function TickerPage() {
   const [deals, setDeals] = useState<Deal[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const trackRef = useRef<HTMLDivElement>(null)
+  const rafRef = useRef<number | null>(null)
   const startTimeRef = useRef<number | null>(null)
+  const offsetRef = useRef(0)
 
   async function loadDeals() {
     try {
@@ -51,8 +56,9 @@ function TickerPage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data: DealsResponse = await res.json()
       setDeals(data.deals ?? [])
-    } catch (e) {
-      console.error('Deal feed error:', e)
+      setError(null)
+    } catch {
+      setError('Unable to load filings — retrying soon')
     } finally {
       setLoading(false)
     }
@@ -60,7 +66,7 @@ function TickerPage() {
 
   useEffect(() => {
     loadDeals()
-    const interval = setInterval(loadDeals, 60 * 60 * 1000)
+    const interval = setInterval(loadDeals, 30 * 60 * 1000)
     return () => clearInterval(interval)
   }, [])
 
@@ -68,18 +74,18 @@ function TickerPage() {
     const track = trackRef.current
     if (!track || deals.length === 0) return
     let rafId: number
-
     function step(ts: number) {
       if (startTimeRef.current === null) startTimeRef.current = ts
       const elapsed = (ts - startTimeRef.current) / 1000
       const halfWidth = track!.scrollWidth / 2
       if (halfWidth > 0) {
-        track!.style.transform = `translateX(-${(elapsed * SPEED) % halfWidth}px)`
+        offsetRef.current = (elapsed * SPEED) % halfWidth
+        track!.style.transform = `translateX(-${offsetRef.current}px)`
       }
       rafId = requestAnimationFrame(step)
     }
-
     rafId = requestAnimationFrame(step)
+    rafRef.current = rafId
     return () => {
       cancelAnimationFrame(rafId)
       startTimeRef.current = null
@@ -98,6 +104,7 @@ function TickerPage() {
       display: 'flex',
       alignItems: 'center',
       overflow: 'hidden',
+      color: '#c8c0b0',
     }}>
 
       {/* Deals label */}
@@ -106,7 +113,7 @@ function TickerPage() {
         padding: '0 18px',
         fontSize: 11,
         letterSpacing: '0.18em',
-        textTransform: 'uppercase',
+        textTransform: 'uppercase' as const,
         color: '#a89070',
         borderRight: '1px solid #2a2a2a',
         height: '100%',
@@ -118,8 +125,15 @@ function TickerPage() {
         Deals
       </div>
 
-      {/* Ticker track */}
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', height: '100%', display: 'flex', alignItems: 'center' }}>
+      {/* Ticker strip */}
+      <div style={{
+        flex: 1,
+        overflow: 'hidden',
+        position: 'relative',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+      }}>
 
         {/* Fade right edge */}
         <div style={{
@@ -129,11 +143,19 @@ function TickerPage() {
         }} />
 
         {loading && (
-          <span style={{ paddingLeft: 24, fontSize: 11, color: '#444' }}>Loading&hellip;</span>
+          <span style={{ paddingLeft: 24, fontSize: 11, color: '#444' }}>
+            Loading&hellip;
+          </span>
         )}
-
-        {!loading && deals.length === 0 && (
-          <span style={{ paddingLeft: 24, fontSize: 11, color: '#444' }}>No recent filings</span>
+        {error && (
+          <span style={{ paddingLeft: 24, fontSize: 11, color: '#444' }}>
+            {error}
+          </span>
+        )}
+        {!loading && !error && deals.length === 0 && (
+          <span style={{ paddingLeft: 24, fontSize: 11, color: '#444' }}>
+            No recent filings
+          </span>
         )}
 
         {!loading && deals.length > 0 && (
@@ -149,9 +171,21 @@ function TickerPage() {
                 href={deal.edgarUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ textDecoration: 'none', color: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 24px' }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  padding: '0 24px',
+                  textDecoration: 'none',
+                  color: 'inherit',
+                }}
               >
-                <span style={{ fontSize: 9, letterSpacing: '0.14em', color: '#a89070', textTransform: 'uppercase' }}>
+                <span style={{
+                  fontSize: 9,
+                  letterSpacing: '0.14em',
+                  color: '#a89070',
+                  textTransform: 'uppercase' as const,
+                }}>
                   {deal.formType || 'Filing'}
                 </span>
                 <span style={{ fontSize: 13, color: '#c8c0b0' }}>
@@ -160,11 +194,8 @@ function TickerPage() {
                 <span style={{ fontSize: 10, color: '#444' }}>
                   {formatDate(deal.filedDate)}
                 </span>
+                <span style={{ color: '#2a2a2a', fontSize: 10, marginLeft: 17 }}>◆</span>
               </a>
-            ))}
-            {/* Diamond separators between items */}
-            {items.map((_, i) => (
-              <span key={`sep-${i}`} style={{ color: '#2a2a2a', fontSize: 10, margin: '0 -20px' }}>◆</span>
             ))}
           </div>
         )}
