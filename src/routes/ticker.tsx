@@ -107,23 +107,6 @@ function TickerPage() {
       color: '#c8c0b0',
     }}>
 
-      {/* Deals label */}
-      <div style={{
-        flexShrink: 0,
-        padding: '0 18px',
-        fontSize: 11,
-        letterSpacing: '0.18em',
-        textTransform: 'uppercase' as const,
-        color: '#a89070',
-        borderRight: '1px solid #2a2a2a',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        background: '#0f0f0f',
-        zIndex: 2,
-      }}>
-        Deals
-      </div>
 
       {/* Ticker strip */}
       <div style={{
