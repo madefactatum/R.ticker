@@ -194,7 +194,7 @@ function TickerPage() {
                 <span style={{ fontSize: 10, color: '#444' }}>
                   {formatDate(deal.filedDate)}
                 </span>
-                <span style={{ color: '#2a2a2a', fontSize: 10, marginLeft: 17 }}>◆</span>
+                <span style={{ color: '#2a2a2a', fontSize: 10, marginLeft: 1 }}>◆</span>
               </a>
             ))}
           </div>
