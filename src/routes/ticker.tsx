@@ -102,7 +102,7 @@ export const Route = createFileRoute('/ticker')({
   component: TickerPage,
 })
 
-const SPEED = 60 // px/s — matches original
+const SPEED = 150 // px/s — matches original
 
 function TickerPage() {
   const [deals, setDeals] = useState<Deal[]>([])
