@@ -194,7 +194,7 @@ function TickerPage() {
           </span>
         )}
         {error && (
-          <span style={{ paddingLeft: 24, fontSize: 11, color: '#444' }}>
+          <span style={{ paddingLeft: 24, fontSize: 11, color: '#888' }}>
             {error}
           </span>
         )}
